@@ -7,11 +7,16 @@ __global__ void my_kernel() {}
 // Many blocks with one thread each
 // One block with many threads
 // block x thread_per_block
-__global__ void add(int *a, int *b, int *c) {
-  int index = threadIdx.x + blockIdx.x * blockDim.x;
+__global__ void add(int *a, int *b, int *c, int n) {
   // c[blockIdx.x] = a[blockIdx.x] + b[blockIdx.x];
   // c[threadIdx.x] = a[threadIdx.x] + b[threadIdx.x];
-  c[index] = a[index] + b[index];
+  // c[index] = a[index] + b[index];
+
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  // patch for "non-divide", avoid overflow
+  if (index < n) {
+    c[index] = a[index] + b[index];
+  }
 }
 
 inline void print_array(const int *start, size_t count,
@@ -37,11 +42,11 @@ void random_ints(int *a, int len) {
 
 #define BLK 10000
 #define TRD 1024
-#define V_LEN (BLK * TRD)
+#define NOT_ALIGN 123
+#define V_LEN ((BLK) * (TRD) + NOT_ALIGN)
 
 int main(void) {
   // my_kernel<<<1, 1>>>();
-  // printf("hello world\n");
 
   int *a, *b, *c;       // host copies of a, b, c
   int *d_a, *d_b, *d_c; // device copies of a, b, c
@@ -65,8 +70,8 @@ int main(void) {
   cudaMemcpy(d_b, b, size, cudaMemcpyHostToDevice);
 
   // Launch add() kernel on GPU
-  // add<<<V_LEN, 1>>>(d_a, d_b, d_c);
-  add<<<BLK, TRD>>>(d_a, d_b, d_c);
+  // we ensure full coverage, overflow part will be ignored in function
+  add<<<BLK + 1, TRD>>>(d_a, d_b, d_c, V_LEN);
 
   // Copy result back to host
   cudaMemcpy(c, d_c, size, cudaMemcpyDeviceToHost);
