@@ -6,9 +6,12 @@ __global__ void my_kernel() {}
 
 // Many blocks with one thread each
 // One block with many threads
+// block x thread_per_block
 __global__ void add(int *a, int *b, int *c) {
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
   // c[blockIdx.x] = a[blockIdx.x] + b[blockIdx.x];
-  c[threadIdx.x] = a[threadIdx.x] + b[threadIdx.x];
+  // c[threadIdx.x] = a[threadIdx.x] + b[threadIdx.x];
+  c[index] = a[index] + b[index];
 }
 
 inline void print_array(const int *start, size_t count,
@@ -32,7 +35,9 @@ void random_ints(int *a, int len) {
     a[i] = rand() % 1000;
 }
 
-#define V_LEN 1024
+#define BLK 10000
+#define TRD 1024
+#define V_LEN (BLK * TRD)
 
 int main(void) {
   // my_kernel<<<1, 1>>>();
@@ -61,7 +66,7 @@ int main(void) {
 
   // Launch add() kernel on GPU
   // add<<<V_LEN, 1>>>(d_a, d_b, d_c);
-  add<<<1, V_LEN>>>(d_a, d_b, d_c);
+  add<<<BLK, TRD>>>(d_a, d_b, d_c);
 
   // Copy result back to host
   cudaMemcpy(c, d_c, size, cudaMemcpyDeviceToHost);
