@@ -1,4 +1,4 @@
-#include <iostream>
+#include "utils.h"
 
 __global__ void my_kernel() {}
 
@@ -19,21 +19,6 @@ __global__ void add(int *a, int *b, int *c, int n) {
   }
 }
 
-inline void print_array(const int *start, size_t count,
-                        bool dont_compress = false) {
-  std::cout << "[";
-  for (size_t i = 0; i < count; i++) {
-    if (!dont_compress && i == 5 && count >= 10) {
-      i = count - 5;
-      std::cout << "...";
-    }
-    std::cout << start[i];
-    if (i != count - 1)
-      std::cout << ", ";
-  }
-  std::cout << "]\n";
-}
-
 // populate vectors with random ints
 void random_ints(int *a, int len) {
   for (size_t i = 0; i < len; i++)
@@ -45,9 +30,8 @@ void random_ints(int *a, int len) {
 #define NOT_ALIGN 123
 #define V_LEN ((BLK) * (TRD) + NOT_ALIGN)
 
-int main(void) {
+int adder() {
   // my_kernel<<<1, 1>>>();
-
   int *a, *b, *c;       // host copies of a, b, c
   int *d_a, *d_b, *d_c; // device copies of a, b, c
   int size = V_LEN * sizeof(int);
